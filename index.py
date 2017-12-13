@@ -2,31 +2,38 @@ import pymysql
 
 conn = pymysql.connect(host='172.17.0.1', port=3306, user='root',
                        passwd='JBiXwMlP9h6@AJ^1', db='onlinetest', charset='utf8mb4')
+
+
+def process_rely(parmas={}):
+    _rely = []
+    _keys = list(parmas.keys())
+    for (k, v) in parmas.items():
+        for bl in _keys:
+            if str(v).find(bl) > -1:
+                if bl not in _rely:
+                    if k not in _rely:
+                        _rely.append(bl)
+                    else:
+                        i = _rely.index(k)
+                        _rely.insert(i, bl)
+        if k not in _rely:
+            _rely.append(k)
+    return _rely
+
+
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from  information_schema.VIEWS where TABLE_SCHEMA = %s ', 'onlinetest')
 rs = cur.fetchall()
 cur.close()
 conn.close()
 
-keys = []
 ps = {}
 for al in rs:
-    keys.append('`' + al[0] + '`')
     ps['`' + al[0] + '`'] = al[1]
 
-rely = []
-for al in rs:
-    for bl in keys:
-        if str(al[1]).find(bl) > -1:
-            if bl not in rely:
-                if '`' + al[0] + '`' not in rely:
-                    rely.append(bl)
-                else:
-                    i = rely.index('`' + al[0] + '`')
-                    rely.insert(i, bl)
+rely = process_rely(ps)
 
-    if '`' + al[0] + '`' not in rely:
-        rely.append('`' + al[0] + '`')
+
 
 file_object = open('view.sql', 'w')
 for al in rely:
