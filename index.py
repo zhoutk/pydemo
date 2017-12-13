@@ -16,6 +16,13 @@ def process_rely(parmas={}, rely_old=[]):
                     else:
                         i = _rely.index(k)
                         _rely.insert(i, bl)
+                else:
+                    if k in _rely:
+                        i = _rely.index(k)
+                        j = _rely.index(bl)
+                        if i < j:
+                            del _rely[j]
+                            _rely.insert(i, bl)
         if k not in _rely:
             _rely.append(k)
     return _rely
@@ -31,9 +38,8 @@ ps = {}
 for al in rs:
     ps['`' + al[0] + '`'] = al[1]
 
-rely1 = process_rely(ps, list(ps.keys()))
-
-rely = process_rely(ps, rely1)
+rely = process_rely(ps, list(ps.keys()))
+# rely = process_rely(ps, rely1)
 
 file_object = open('view.sql', 'w')
 for al in rely:
