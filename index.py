@@ -10,6 +10,17 @@ rs = cur.fetchall()
 cur.close()
 conn.close()
 
+keys = []
+for al in rs:
+    keys.append(al[0])
+
+rely = []
+for al in rs:
+    for bl in keys:
+        if str(al[1]).find('`' + bl + '`') > -1:
+            rely.append(bl)
+    b = 0
+
 file_object = open('view.sql', 'w+')
 for al in rs:
     file_object.write('DROP VIEW IF EXISTS `' + al[0] + '`;\n')
