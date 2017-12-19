@@ -1,7 +1,7 @@
 import pymysql
 
-conn = pymysql.connect(host='172.17.0.1', port=3306, user='root',
-                       passwd='JBiXwMlP9h6@AJ^1', db='onlinetest', charset='utf8mb4')
+conn = pymysql.connect(host='tlwl2020.mysql.rds.aliyuncs.com', port=3686, user='root',
+                       passwd='znhl2017UP', db='jbk', charset='utf8mb4')
 
 
 def process_rely(parmas={}, rely_old=[]):
@@ -29,7 +29,7 @@ def process_rely(parmas={}, rely_old=[]):
 
 
 cur = conn.cursor()
-cur.execute('select TABLE_NAME, VIEW_DEFINITION from  information_schema.VIEWS where TABLE_SCHEMA = %s ', 'onlinetest')
+cur.execute('select TABLE_NAME, VIEW_DEFINITION from  information_schema.VIEWS where TABLE_SCHEMA = %s ', 'jbk')
 rs = cur.fetchall()
 cur.close()
 conn.close()
