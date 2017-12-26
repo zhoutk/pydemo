@@ -1,19 +1,12 @@
 import pymysql
 import xlrd
+import json
 
-conn = pymysql.connect(host='101.201.141.70', port=10505, user='root',
-                       passwd='JBiXwMlP9h6@AJ^1', db='onlinetest', charset='utf8mb4')
+with open("./configs.json", 'r', encoding='utf-8') as json_file:
+    dbconf = json.load(json_file)['db_local_onlinetest']
 
-
-cur = conn.cursor()
-cur.execute("select id,category from goods where category > 0 ")
-rs = cur.fetchall()
-cur.close()
-conn.close()
-
-goods = {}
-for al in rs:
-    goods[al[0]] = al[1]
+conn = pymysql.connect(host=dbconf['db_host'], port=dbconf['db_port'], user=dbconf['db_username'],
+                       passwd=dbconf['db_password'], db=dbconf['db_database'], charset=dbconf['db_charset'])
 
 data = xlrd.open_workbook('./goods.xlsx')
 table = data.sheets()[0]
@@ -23,6 +16,12 @@ ops = []
 for i in range(nrows):
     if i > 0:
         r = table.row_values(i)
-        tmp = r[19] if isinstance(r[19], str) else int(r[19])
-        if goods[r[7]] != int(str(tmp)[-3:]):
-            print(i+1, ' goodsid: ', r[7], ' old category: ', goods[r[7]], ' new category: ', int(str(tmp)[-3:]))
+        category = r[4]
+        goods_id = r[9]
+        ops.append((category, goods_id))
+
+cur = conn.cursor()
+cur.executemany('update goods set category = %s where id = %s ', ops)
+conn.commit()
+cur.close()
+
