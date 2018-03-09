@@ -6,6 +6,7 @@ __pycache__/
 configs.json
 .DS_Store
 .idea
+.vscode
 
 # C extensions
 *.so
