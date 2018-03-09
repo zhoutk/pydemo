@@ -1,7 +1,12 @@
 import pymysql
 
-conn = pymysql.connect(host='tlwl2020.mysql.rds.aliyuncs.com', port=3686, user='root',
-                       passwd='znhl2017UP', db='jbk', charset='utf8mb4')
+conn = pymysql.connect(
+    host='tlwl2020.mysql.rds.aliyuncs.com',
+    port=3686,
+    user='root',
+    passwd='znhl2017UP',
+    db='jbk',
+    charset='utf8mb4')
 
 
 def process_rely(parmas={}, rely_old=[]):
@@ -29,7 +34,8 @@ def process_rely(parmas={}, rely_old=[]):
 
 
 cur = conn.cursor()
-cur.execute('select TABLE_NAME, VIEW_DEFINITION from  information_schema.VIEWS where TABLE_SCHEMA = %s ', 'jbk')
+cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
+            ' information_schema.VIEWS where TABLE_SCHEMA = %s ', 'jbk')
 rs = cur.fetchall()
 cur.close()
 conn.close()
@@ -44,7 +50,8 @@ rely = process_rely(ps, list(ps.keys()))
 file_object = open('view.sql', 'w')
 for al in rely:
     file_object.write('DROP VIEW IF EXISTS ' + al + ';\n')
-    file_object.write('CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW ' + al +
-                      ' AS ' + ps[al] + ';\n\n')
+    file_object.write(
+        'CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` ' +
+        ' SQL SECURITY DEFINER VIEW ' + al + ' AS ' + ps[al] + ';\n\n')
 
 file_object.close()
