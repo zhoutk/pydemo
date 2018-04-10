@@ -1,11 +1,12 @@
 import pymysql
 
+targetDatabase = 'jyh'
 conn = pymysql.connect(
     host='tlwl2020.mysql.rds.aliyuncs.com',
     port=3686,
     user='root',
     passwd='znhl2017UP',
-    db='jbk',
+    db=targetDatabase,
     charset='utf8mb4')
 
 
@@ -35,7 +36,8 @@ def process_rely(parmas={}, rely_old=[]):
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
-            ' information_schema.VIEWS where TABLE_SCHEMA = %s ', 'jbk')
+            ' information_schema.VIEWS where TABLE_SCHEMA = %s ', 
+            targetDatabase)
 rs = cur.fetchall()
 cur.close()
 conn.close()
@@ -44,8 +46,8 @@ ps = {}
 for al in rs:
     ps['`' + al[0] + '`'] = al[1]
 
-rely = process_rely(ps, list(ps.keys()))
-# rely = process_rely(ps, rely1)
+rely1 = process_rely(ps, list(ps.keys()))
+rely = process_rely(ps, rely1)                  # 第二次迭代
 
 file_object = open('view.sql', 'w')
 for al in rely:
