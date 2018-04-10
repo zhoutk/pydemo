@@ -1,13 +1,16 @@
 import pymysql
+import json
 
-targetDatabase = 'jyh'
+with open("./configs.json", "r") as configs:
+    conf = (json.load(configs))["db_rds_jyh"]
+
 conn = pymysql.connect(
-    host='tlwl2020.mysql.rds.aliyuncs.com',
-    port=3686,
-    user='root',
-    passwd='znhl2017UP',
-    db=targetDatabase,
-    charset='utf8mb4')
+    host=conf["db_host"],
+    port=conf["db_port"],
+    user=conf["db_username"],
+    passwd=conf["db_password"],
+    db=conf["db_database"],
+    charset=conf["db_charset"])
 
 
 def process_rely(parmas={}, rely_old=[]):
@@ -36,8 +39,8 @@ def process_rely(parmas={}, rely_old=[]):
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
-            ' information_schema.VIEWS where TABLE_SCHEMA = %s ', 
-            targetDatabase)
+            ' information_schema.VIEWS where TABLE_SCHEMA = %s ',
+            conf["db_database"])
 rs = cur.fetchall()
 cur.close()
 conn.close()
