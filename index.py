@@ -40,7 +40,7 @@ def process_rely(parmas={}, rely_old=[]):
     return _rely
 
 file_object = open(workDir +
-                   conf["db_database"] +
+                   conf["db_database"] + '-' +
                    time.strftime("%Y-%m-%d", time.localtime()) +
                    '.sql', 'w')
 file_object.write('/*   Mysql export' +
@@ -54,6 +54,18 @@ file_object.write('/*   Mysql export' +
                   '\n     Copyright: tlwl-2018' +
                   '\n*/\n\n')
 file_object.write('SET FOREIGN_KEY_CHECKS=0;\n\n')
+
+cur = conn.cursor()
+cur.execute('select INDEX_NAME,TABLE_NAME,COLUMN_NAME' +
+            ' from information_schema.`STATISTICS` ' +
+            'where TABLE_SCHEMA = %s ',
+            conf["db_database"])
+cstRs = cur.fetchall()
+cur.close()
+
+CSTS = {}
+for cstAl in cstRs:
+    CSTS[cstAl[1]+'.'+cstAl[2]] = cstAl[0]
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME,ENGINE,ROW_FORMAT,AUTO_INCREMENT,TABLE_COLLATION,CREATE_OPTIONS,TABLE_COMMENT' +
@@ -86,6 +98,7 @@ for tbAl in tbRs:
     file_object.write('CREATE TABLE `' + tableName + '` (\n')
     priKey = ''
     colKey = []
+    mulKey = []
     for colAl in colRs:
         file_object.write('  `' + colAl[0] + '` ' + colAl[1] +
                           (' NOT NULL' if colAl[2] == 'NO' else '') +
@@ -95,9 +108,20 @@ for tbAl in tbRs:
                           (' ' + colAl[5] if colAl[5] else '') +
                           (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
                           ',\n')
-        if colAl[6] : 
-            
-    file_object.write(')\n')
+        if colAl[6] == 'PRI':
+            priKey = colAl[0]
+        elif colAl[6] == 'UNI':
+            colKey.append({"colName": colAl[0], "alias": CSTS[tableName+'.'+colAl[0]]})
+        elif colAl[6] == 'MUL':
+            mulKey.append({"colName": colAl[0], "alias": CSTS[tableName+'.'+colAl[0]]})
+    if priKey:
+        file_object.write('  PRIMARY KEY (`'+priKey+'`),\n')
+    for ckey in colKey:
+        file_object.write('  UNIQUE KEY `'+ckey["alias"]+'` (`'+ckey["colName"]+'`),\n')
+    for mkey in mulKey:
+        file_object.write('  KEY `'+mkey["alias"]+'` (`'+mkey["colName"]+'`),\n')
+    
+    file_object.write(')\n\n')
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
