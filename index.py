@@ -42,18 +42,36 @@ def process_rely(parmas={}, rely_old=[]):
 file_object = open(workDir +
                    conf["db_database"] + '-' +
                    time.strftime("%Y-%m-%d", time.localtime()) +
-                   '.sql', 'w')
-file_object.write('/*   Mysql export' +
-                  '\n\n     Host: ' + conf["db_host"] +
-                  '\n     Port: ' + str(conf["db_port"]) +
-                  '\n     DataBase: ' + conf["db_database"] +
-                  '\n     Date: ' +
-                  time.strftime("%Y-%m-%d %H:%M:%S",
-                                time.localtime()) +
-                  '\n\n     Author: zhoutk@189.cn' +
-                  '\n     Copyright: tlwl-2018' +
-                  '\n*/\n\n')
-file_object.write('SET FOREIGN_KEY_CHECKS=0;\n\n')
+                   '.sql', 'wb+')
+file_object.write(('/*   Mysql export' +
+                   '\n\n     Host: ' + conf["db_host"] +
+                   '\n     Port: ' + str(conf["db_port"]) +
+                   '\n     DataBase: ' + conf["db_database"] +
+                   '\n     Date: ' +
+                   time.strftime("%Y-%m-%d %H:%M:%S",
+                                 time.localtime()) +
+                   '\n\n     Author: zhoutk@189.cn' +
+                   '\n     Copyright: tlwl-2018' +
+                   '\n*/\n\n').encode('UTF-8'))
+file_object.write('SET FOREIGN_KEY_CHECKS=0;\n\n'.encode('UTF-8'))
+
+cur = conn.cursor()
+cur.execute('select CONSTRAINT_NAME,TABLE_NAME,COLUMN_NAME,REFERENCED_TABLE_SCHEMA,' +
+            'REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME from information_schema.`KEY_COLUMN_USAGE` ' +
+            'where REFERENCED_TABLE_SCHEMA = %s ',
+            conf["db_database"])
+cstRs = cur.fetchall()
+cur.close()
+
+FKEYS = {}
+for cstAl in cstRs:
+    FKEYS[cstAl[1] + '.' + cstAl[2]] = {
+        "constraintName": cstAl[0],
+        "colName1": cstAl[2],
+        "schema": cstAl[3],
+        "tableName": cstAl[4],
+        "colName2": cstAl[5]
+    }
 
 cur = conn.cursor()
 cur.execute('select INDEX_NAME,TABLE_NAME,COLUMN_NAME' +
@@ -94,34 +112,40 @@ for tbAl in tbRs:
     tableCreateOptions = tbAl[5]
     tableComment = tbAl[6]
 
-    file_object.write('DROP TABLE IF EXISTS `' + tbAl[0] + '`;\n')
-    file_object.write('CREATE TABLE `' + tableName + '` (\n')
+    file_object.write(('DROP TABLE IF EXISTS `' + tbAl[0] + '`;\n').encode('UTF-8'))
+    file_object.write(('CREATE TABLE `' + tableName + '` (\n').encode('UTF-8'))
     priKey = ''
     colKey = []
     mulKey = []
+    fKey = []
     for colAl in colRs:
-        file_object.write('  `' + colAl[0] + '` ' + colAl[1] +
+        file_object.write(('  `' + colAl[0] + '` ' + colAl[1] +
                           (' NOT NULL' if colAl[2] == 'NO' else '') +
                           (' CHARACTER SET ' + colAl[3] if colAl[3] and colAl[3] != tableCharset else '') +
                           (' DEFAULT \'' + colAl[4] + '\'' if colAl[4] is not None else
                           ('' if colAl[2] == 'NO' else ' DEFAULT NULL')) +
                           (' ' + colAl[5] if colAl[5] else '') +
                           (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
-                          ',\n')
+                          ',\n').encode('UTF-8'))
         if colAl[6] == 'PRI':
             priKey = colAl[0]
         elif colAl[6] == 'UNI':
             colKey.append({"colName": colAl[0], "alias": CSTS[tableName+'.'+colAl[0]]})
         elif colAl[6] == 'MUL':
             mulKey.append({"colName": colAl[0], "alias": CSTS[tableName+'.'+colAl[0]]})
+        if tableName+'.'+colAl[0] in FKEYS:
+            fKey.append(FKEYS[tableName+'.'+colAl[0]])
     if priKey:
-        file_object.write('  PRIMARY KEY (`'+priKey+'`),\n')
+        file_object.write(('  PRIMARY KEY (`'+priKey+'`),\n').encode('UTF-8'))
     for ckey in colKey:
-        file_object.write('  UNIQUE KEY `'+ckey["alias"]+'` (`'+ckey["colName"]+'`),\n')
+        file_object.write(('  UNIQUE KEY `'+ckey["alias"]+'` (`'+ckey["colName"]+'`),\n').encode('UTF-8'))
     for mkey in mulKey:
-        file_object.write('  KEY `'+mkey["alias"]+'` (`'+mkey["colName"]+'`),\n')
-    
-    file_object.write(')\n\n')
+        file_object.write(('  KEY `'+mkey["alias"]+'` (`'+mkey["colName"]+'`),\n').encode('UTF-8'))
+    for fkey in fKey:
+        file_object.write(('  CONSTRAINT `'+fkey["constraintName"]+'` FOREIGN KEY (`'+fkey["colName1"] +
+                          '`) REFERENCES `'+fkey["tableName"]+'` (`'+fkey["colName2"]+'`),\n').encode('UTF-8'))
+    file_object.seek(-len(',\n'), 1)
+    file_object.write('\n)\n\n'.encode('UTF-8'))
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
@@ -139,9 +163,9 @@ rely1 = process_rely(ps, list(ps.keys()))
 rely = process_rely(ps, rely1)                  # 第二次迭代
 
 for al in rely:
-    file_object.write('DROP VIEW IF EXISTS ' + al + ';\n')
-    file_object.write(
+    file_object.write(('DROP VIEW IF EXISTS ' + al + ';\n').encode('UTF-8'))
+    file_object.write((
         'CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` ' +
-        ' SQL SECURITY DEFINER VIEW ' + al + ' AS ' + ps[al] + ';\n\n')
+        ' SQL SECURITY DEFINER VIEW ' + al + ' AS ' + ps[al] + ';\n\n').encode('UTF-8'))
 
 file_object.close()
