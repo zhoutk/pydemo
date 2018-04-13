@@ -119,10 +119,14 @@ for tbAl in tbRs:
     mulKey = []
     fKey = []
     for colAl in colRs:
+        if colAl[4] is None:
+            defaultValue = None
+        else:
+            defaultValue = colAl[4] if colAl[4] == 'CURRENT_TIMESTAMP' else '\'' + colAl[4] + '\''
         file_object.write(('  `' + colAl[0] + '` ' + colAl[1] +
                           (' NOT NULL' if colAl[2] == 'NO' else '') +
                           (' CHARACTER SET ' + colAl[3] if colAl[3] and colAl[3] != tableCharset else '') +
-                          (' DEFAULT \'' + colAl[4] + '\'' if colAl[4] is not None else
+                          (' DEFAULT ' + defaultValue if colAl[4] is not None else
                           ('' if colAl[2] == 'NO' else ' DEFAULT NULL')) +
                           (' ' + colAl[5] if colAl[5] else '') +
                           (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
@@ -145,7 +149,12 @@ for tbAl in tbRs:
         file_object.write(('  CONSTRAINT `'+fkey["constraintName"]+'` FOREIGN KEY (`'+fkey["colName1"] +
                           '`) REFERENCES `'+fkey["tableName"]+'` (`'+fkey["colName2"]+'`),\n').encode('UTF-8'))
     file_object.seek(-len(',\n'), 1)
-    file_object.write('\n)\n\n'.encode('UTF-8'))
+    file_object.write((
+        '\n) ENGINE=' + tableEngine + 
+        (' AUTO_INCREMENT=' + str(tableAutoIncrement) if tableAutoIncrement is not None else '') +
+        ' DEFAULT CHARSET=' + tableCharset + ' ' + tableCreateOptions +
+        ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
+    )
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
