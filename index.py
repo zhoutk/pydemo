@@ -44,17 +44,20 @@ file_object = open(workDir +
                    time.strftime("%Y-%m-%d", time.localtime()) +
                    '.sql', 'w')
 file_object.write('/*   Mysql export' +
-                  ',\n\n     Host: ' + conf["db_host"] +
-                  ',\n     Port: ' + str(conf["db_port"]) +
-                  ',\n     DataBase: ' + conf["db_database"] +
-                  ',\n     Date: ' +
+                  '\n\n     Host: ' + conf["db_host"] +
+                  '\n     Port: ' + str(conf["db_port"]) +
+                  '\n     DataBase: ' + conf["db_database"] +
+                  '\n     Date: ' +
                   time.strftime("%Y-%m-%d %H:%M:%S",
                                 time.localtime()) +
+                  '\n\n     Author: zhoutk@189.cn' +
+                  '\n     Copyright: tlwl-2018' +
                   '\n*/\n\n')
 file_object.write('SET FOREIGN_KEY_CHECKS=0;\n\n')
 
 cur = conn.cursor()
-cur.execute('select TABLE_NAME from information_schema.`TABLES` ' +
+cur.execute('select TABLE_NAME,ENGINE,ROW_FORMAT,AUTO_INCREMENT,TABLE_COLLATION,CREATE_OPTIONS,TABLE_COMMENT' +
+            ' from information_schema.`TABLES` ' +
             'where TABLE_SCHEMA = %s and TABLE_TYPE = %s ' +
             'order by TABLE_NAME',
             (conf["db_database"], 'BASE TABLE'))
@@ -63,18 +66,37 @@ cur.close()
 
 for tbAl in tbRs:
     cur = conn.cursor()
-    cur.execute('SELECT COLUMN_NAME,COLUMN_TYPE,DATA_TYPE,' +
-                'CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,' +
-                'COLUMN_DEFAULT,COLUMN_COMMENT FROM ' +
+    cur.execute('SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,CHARACTER_SET_NAME,COLUMN_DEFAULT,' +
+                'EXTRA,COLUMN_KEY,COLUMN_COMMENT FROM ' +
                 'INFORMATION_SCHEMA.COLUMNS where table_schema = %s ' +
-                'AND table_name = %s order by COLUMN_NAME',
+                'AND table_name = %s ',
                 (conf["db_database"], tbAl[0]))
     colRs = cur.fetchall()
     cur.close()
-    file_object.write('DROP TABLE IF EXISTS `'+tbAl[0]+'`;\n')
-    file_object.write('CREATE TABLE `'+tbAl[0]+'` (\n')
+    tableName = tbAl[0]
+    tableEngine = tbAl[1]
+    tableRowFormat = tbAl[2]
+    tableAutoIncrement = tbAl[3]
+    tableCollation = tbAl[4]
+    tableCharset = tableCollation.split('_')[0]
+    tableCreateOptions = tbAl[5]
+    tableComment = tbAl[6]
+
+    file_object.write('DROP TABLE IF EXISTS `' + tbAl[0] + '`;\n')
+    file_object.write('CREATE TABLE `' + tableName + '` (\n')
+    priKey = ''
+    colKey = []
     for colAl in colRs:
-        file_object.write(colAl[0] + '\n')
+        file_object.write('  `' + colAl[0] + '` ' + colAl[1] +
+                          (' NOT NULL' if colAl[2] == 'NO' else '') +
+                          (' CHARACTER SET ' + colAl[3] if colAl[3] and colAl[3] != tableCharset else '') +
+                          (' DEFAULT \'' + colAl[4] + '\'' if colAl[4] is not None else
+                          ('' if colAl[2] == 'NO' else ' DEFAULT NULL')) +
+                          (' ' + colAl[5] if colAl[5] else '') +
+                          (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
+                          ',\n')
+        if colAl[6] : 
+            
     file_object.write(')\n')
 
 cur = conn.cursor()
