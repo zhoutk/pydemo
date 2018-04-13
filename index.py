@@ -1,8 +1,11 @@
 import pymysql
 import json
+import time
 
 with open("./configs.json", "r") as configs:
-    conf = (json.load(configs))["db_rds_jyh"]
+    confs = json.load(configs)
+    workDir = confs["workDir"]
+    conf = confs["db_rds_jyh"]
 
 conn = pymysql.connect(
     host=conf["db_host"],
@@ -52,7 +55,10 @@ for al in rs:
 rely1 = process_rely(ps, list(ps.keys()))
 rely = process_rely(ps, rely1)                  # 第二次迭代
 
-file_object = open('view.sql', 'w')
+file_object = open(workDir +
+                   conf["db_database"] +
+                   time.strftime("%Y-%m-%d", time.localtime()) +
+                   '.sql', 'w')
 for al in rely:
     file_object.write('DROP VIEW IF EXISTS ' + al + ';\n')
     file_object.write(
