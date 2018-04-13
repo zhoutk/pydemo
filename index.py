@@ -5,7 +5,7 @@ import time
 with open("./configs.json", "r") as configs:
     confs = json.load(configs)
     workDir = confs["workDir"]
-    conf = confs["db_rds_jyh"]
+    conf = confs["db_rds_strest"]
 
 conn = pymysql.connect(
     host=conf["db_host"],
@@ -39,6 +39,43 @@ def process_rely(parmas={}, rely_old=[]):
             _rely.append(k)
     return _rely
 
+file_object = open(workDir +
+                   conf["db_database"] +
+                   time.strftime("%Y-%m-%d", time.localtime()) +
+                   '.sql', 'w')
+file_object.write('/*   Mysql export' +
+                  ',\n\n     Host: ' + conf["db_host"] +
+                  ',\n     Port: ' + str(conf["db_port"]) +
+                  ',\n     DataBase: ' + conf["db_database"] +
+                  ',\n     Date: ' +
+                  time.strftime("%Y-%m-%d %H:%M:%S",
+                                time.localtime()) +
+                  '\n*/\n\n')
+file_object.write('SET FOREIGN_KEY_CHECKS=0;\n\n')
+
+cur = conn.cursor()
+cur.execute('select TABLE_NAME from information_schema.`TABLES` ' +
+            'where TABLE_SCHEMA = %s and TABLE_TYPE = %s ' +
+            'order by TABLE_NAME',
+            (conf["db_database"], 'BASE TABLE'))
+tbRs = cur.fetchall()
+cur.close()
+
+for tbAl in tbRs:
+    cur = conn.cursor()
+    cur.execute('SELECT COLUMN_NAME,COLUMN_TYPE,DATA_TYPE,' +
+                'CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE,' +
+                'COLUMN_DEFAULT,COLUMN_COMMENT FROM ' +
+                'INFORMATION_SCHEMA.COLUMNS where table_schema = %s ' +
+                'AND table_name = %s order by COLUMN_NAME',
+                (conf["db_database"], tbAl[0]))
+    colRs = cur.fetchall()
+    cur.close()
+    file_object.write('DROP TABLE IF EXISTS `'+tbAl[0]+'`;\n')
+    file_object.write('CREATE TABLE `'+tbAl[0]+'` (\n')
+    for colAl in colRs:
+        file_object.write(colAl[0] + '\n')
+    file_object.write(')\n')
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
@@ -55,10 +92,6 @@ for al in rs:
 rely1 = process_rely(ps, list(ps.keys()))
 rely = process_rely(ps, rely1)                  # 第二次迭代
 
-file_object = open(workDir +
-                   conf["db_database"] +
-                   time.strftime("%Y-%m-%d", time.localtime()) +
-                   '.sql', 'w')
 for al in rely:
     file_object.write('DROP VIEW IF EXISTS ' + al + ';\n')
     file_object.write(
