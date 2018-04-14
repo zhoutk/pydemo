@@ -162,7 +162,9 @@ for tbAl in tbRs:
     for ele in recordsRs:
         file_object.write(('INSERT INTO `'+tableName+'` VALUES (').encode('UTF-8'))
         for el in ele:
-            file_object.write(("'"+str(el)+"',").encode('UTF-8'))
+            file_object.write(
+                (("null" if el is None else "'" + (json.dumps(el)[1:-1] if str(el).find('}') > -1 else str(el)) + "'") +
+                 ",").encode('UTF-8'))
         file_object.seek(-1, 1)
         file_object.write((");\n").encode('UTF-8'))
     file_object.write(("\n").encode('UTF-8'))
