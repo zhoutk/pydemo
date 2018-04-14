@@ -155,6 +155,17 @@ for tbAl in tbRs:
         ' DEFAULT CHARSET=' + tableCharset + ' ' + tableCreateOptions +
         ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
     )
+    cur = conn.cursor()
+    cur.execute('select * from ' + tableName)
+    recordsRs = cur.fetchall()
+    cur.close()
+    for ele in recordsRs:
+        file_object.write(('INSERT INTO `'+tableName+'` VALUES (').encode('UTF-8'))
+        for el in ele:
+            file_object.write(("'"+str(el)+"',").encode('UTF-8'))
+        file_object.seek(-1, 1)
+        file_object.write((");\n").encode('UTF-8'))
+    file_object.write(("\n").encode('UTF-8'))
 
 cur = conn.cursor()
 cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
