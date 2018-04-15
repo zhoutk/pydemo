@@ -87,7 +87,8 @@ for tbAl in tbRs:
     cur.execute('SELECT	`COLUMNS`.COLUMN_NAME,`COLUMNS`.COLUMN_TYPE,`COLUMNS`.IS_NULLABLE,' +
                 '`COLUMNS`.CHARACTER_SET_NAME,`COLUMNS`.COLUMN_DEFAULT,`COLUMNS`.EXTRA,' +
                 '`COLUMNS`.COLUMN_KEY,`COLUMNS`.COLUMN_COMMENT,STATISTICS.TABLE_NAME,' +
-                'STATISTICS.INDEX_NAME,STATISTICS.SEQ_IN_INDEX FROM	information_schema.`COLUMNS` ' +
+                'STATISTICS.INDEX_NAME,STATISTICS.SEQ_IN_INDEX,STATISTICS.NON_UNIQUE ' +
+                'FROM information_schema.`COLUMNS` ' +
                 'LEFT JOIN information_schema.`STATISTICS` ON ' +
                 'information_schema.`COLUMNS`.TABLE_NAME = STATISTICS.TABLE_NAME ' +
                 'AND information_schema.`COLUMNS`.COLUMN_NAME = information_schema.`STATISTICS`.COLUMN_NAME ' +
@@ -128,15 +129,15 @@ for tbAl in tbRs:
                               (' ' + colAl[5] if colAl[5] else '') +
                               (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
                               ',\n').encode('UTF-8'))
-        if colAl[6] == 'PRI':
+        if colAl[9] and colAl[9] == 'PRIMARY':
             if colAl[9] not in priKey:
                 priKey[colAl[9]] = []
             priKey[colAl[9]].append(colAl[0])
-        elif colAl[6] == 'UNI':
+        elif colAl[9] and colAl[11] == 0:
             if colAl[9] not in colKey:
                 colKey[colAl[9]] = []
             colKey[colAl[9]].append(colAl[0])
-        elif colAl[6] == 'MUL':
+        elif colAl[9] and colAl[11] == 1:
             if colAl[9] not in mulKey:
                 mulKey[colAl[9]] = []
             mulKey[colAl[9]].append(colAl[0])
