@@ -86,11 +86,12 @@ for tbAl in tbRs:
     cur = conn.cursor()
     cur.execute('SELECT	`COLUMNS`.COLUMN_NAME,`COLUMNS`.COLUMN_TYPE,`COLUMNS`.IS_NULLABLE,' +
                 '`COLUMNS`.CHARACTER_SET_NAME,`COLUMNS`.COLUMN_DEFAULT,`COLUMNS`.EXTRA,' +
-                '`COLUMNS`.COLUMN_KEY,`COLUMNS`.COLUMN_COMMENT,STATISTICS.TABLE_NAME,' +
-                'STATISTICS.INDEX_NAME,STATISTICS.SEQ_IN_INDEX,STATISTICS.NON_UNIQUE ' +
+                '`COLUMNS`.COLUMN_KEY,`COLUMNS`.COLUMN_COMMENT,`STATISTICS`.TABLE_NAME,' +
+                '`STATISTICS`.INDEX_NAME,`STATISTICS`.SEQ_IN_INDEX,`STATISTICS`.NON_UNIQUE,' +
+                '`COLUMNS`.COLLATION_NAME ' +
                 'FROM information_schema.`COLUMNS` ' +
                 'LEFT JOIN information_schema.`STATISTICS` ON ' +
-                'information_schema.`COLUMNS`.TABLE_NAME = STATISTICS.TABLE_NAME ' +
+                'information_schema.`COLUMNS`.TABLE_NAME = `STATISTICS`.TABLE_NAME ' +
                 'AND information_schema.`COLUMNS`.COLUMN_NAME = information_schema.`STATISTICS`.COLUMN_NAME ' +
                 'AND information_schema.`STATISTICS`.table_schema = %s ' +
                 'where information_schema.`COLUMNS`.TABLE_NAME = %s and `COLUMNS`.table_schema = %s ',
@@ -114,21 +115,26 @@ for tbAl in tbRs:
     fKey = []
     priIndex = 1
     theTableColSet = {}
+    allFields = []
     for colAl in colRs:
         if colAl[0] not in theTableColSet:
             theTableColSet[colAl[0]] = 1
+            allFields.append(colAl[0])
             if colAl[4] is None:
                 defaultValue = None
             else:
                 defaultValue = colAl[4] if colAl[4] == 'CURRENT_TIMESTAMP' else '\'' + colAl[4] + '\''
             file_object.write(('  `' + colAl[0] + '` ' + colAl[1] +
                               (' CHARACTER SET ' + colAl[3] if colAl[3] and colAl[3] != tableCharset else '') +
+                              (' COLLATE ' + colAl[12] if colAl[12] and colAl[12] != tableCollation else '') +
                               (' NOT NULL' if colAl[2] == 'NO' else '') +
                               (' DEFAULT ' + defaultValue if colAl[4] is not None else
                               ('' if colAl[2] == 'NO' else ' DEFAULT NULL')) +
                               (' ' + colAl[5] if colAl[5] else '') +
                               (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
                               ',\n').encode('UTF-8'))
+            if tableName+'.'+colAl[0] in FKEYS:
+                fKey.append(FKEYS[tableName+'.'+colAl[0]])
         if colAl[9] and colAl[9] == 'PRIMARY':
             if colAl[9] not in priKey:
                 priKey[colAl[9]] = []
@@ -141,14 +147,13 @@ for tbAl in tbRs:
             if colAl[9] not in mulKey:
                 mulKey[colAl[9]] = []
             mulKey[colAl[9]].append(colAl[0])
-        if tableName+'.'+colAl[0] in FKEYS:
-            fKey.append(FKEYS[tableName+'.'+colAl[0]])
+
     for prikey in priKey.keys():
-        file_object.write(('  PRIMARY KEY (`'+"','".join(priKey[prikey])+'`),\n').encode('UTF-8'))
+        file_object.write(('  PRIMARY KEY (`'+"`,`".join(priKey[prikey])+'`),\n').encode('UTF-8'))
     for ckey in colKey.keys():
-        file_object.write(('  UNIQUE KEY `'+ckey+'` (`'+"','".join(colKey[ckey])+'`),\n').encode('UTF-8'))
+        file_object.write(('  UNIQUE KEY `'+ckey+'` (`'+"`,`".join(colKey[ckey])+'`),\n').encode('UTF-8'))
     for mkey in mulKey.keys():
-        file_object.write(('  KEY `'+mkey+'` (`'+"','".join(mulKey[mkey])+'`),\n').encode('UTF-8'))
+        file_object.write(('  KEY `'+mkey+'` (`'+"`,`".join(mulKey[mkey])+'`),\n').encode('UTF-8'))
     for fkey in fKey:
         file_object.write(('  CONSTRAINT `'+fkey["constraintName"]+'` FOREIGN KEY (`'+fkey["colName1"] +
                           '`) REFERENCES `'+fkey["tableName"]+'` (`'+fkey["colName2"]+'`),\n').encode('UTF-8'))
@@ -156,14 +161,14 @@ for tbAl in tbRs:
     file_object.write((
         '\n) ENGINE=' + tableEngine +
         (' AUTO_INCREMENT=' + str(tableAutoIncrement) if tableAutoIncrement is not None else '') +
-        ' DEFAULT CHARSET=' + tableCharset + ' ' + tableCreateOptions +
-        ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
+        ' DEFAULT CHARSET=' + tableCharset + (' COLLATE=' + tableCollation if tableCollation else ' ') +
+        tableCreateOptions + ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
     )
     cur = conn.cursor()
     # cur.execute('SET NAMES utf8mb4')
     # cur.execute("SET CHARACTER SET utf8mb4")
     # cur.execute("SET character_set_connection=utf8mb4")
-    cur.execute('select * from ' + tableName)
+    cur.execute('select ' + ",".join(allFields) + ' from ' + tableName)
     recordsRs = cur.fetchall()
     cur.close()
     for ele in recordsRs:
