@@ -5,7 +5,7 @@ import time
 with open("./configs.json", "r") as configs:
     confs = json.load(configs)
     workDir = confs["workDir"]
-    conf = confs["db_rds_jbk"]
+    conf = confs["db_rds_jyh"]
 
 conn = pymysql.connect(
     host=conf["db_host"],
@@ -161,8 +161,8 @@ for tbAl in tbRs:
     file_object.write((
         '\n) ENGINE=' + tableEngine +
         (' AUTO_INCREMENT=' + str(tableAutoIncrement) if tableAutoIncrement is not None else '') +
-        ' DEFAULT CHARSET=' + tableCharset + (' COLLATE=' + tableCollation if tableCollation else ' ') +
-        tableCreateOptions + ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
+        ' DEFAULT CHARSET=' + tableCharset + (' COLLATE=' + tableCollation if tableCollation else '') +
+        ' ' + tableCreateOptions + ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
     )
     cur = conn.cursor()
     # cur.execute('SET NAMES utf8mb4')
@@ -175,7 +175,7 @@ for tbAl in tbRs:
         file_object.write(('INSERT INTO `'+tableName+'` VALUES (').encode('UTF-8'))
         for el in ele:
             file_object.write(
-                (("null" if el is None else "'" + (json.dumps(el)[1:-1] if str(el).find('}') > -1 else str(el)) + "'") +
+                (("null" if el is None else "'" + pymysql.escape_string(str(el)) + "'") +
                  ",").encode('UTF-8'))
         file_object.seek(-1, 1)
         file_object.write((");\n").encode('UTF-8'))
