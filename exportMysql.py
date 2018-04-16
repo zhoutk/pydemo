@@ -187,9 +187,9 @@ def exportMysql(conf, workDir):
     rely1 = process_rely(ps, list(ps.keys()))
     rely = process_rely(ps, rely1)                  # 第二次迭代
 
-    newDbName = conf["new_db_name"] if "new_db_name" in conf else conf["db_database"]
     for al in rely:
-        viewStr = ps[al].replace('`'+conf["db_database"]+'`.', '`'+newDbName+'`.') if "new_db_name" in conf else ps[al]
+        viewStr = ps[al].replace('`'+conf["db_database"]+'`.',
+                                 '`'+conf["new_db_name"]+'`.') if "new_db_name" in conf else ps[al]
         file_object.write(('DROP VIEW IF EXISTS ' + al + ';\n').encode('UTF-8'))
         file_object.write((
             'CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` ' +
