@@ -209,9 +209,10 @@ for cstAl in fRs:
     file_object.write(('DROP PROCEDURE IF EXISTS `'+cstAl[0]+'`;\n').encode('UTF-8'))
     file_object.write(('DELIMITER ;;\n').encode('UTF-8'))
     file_object.write(('CREATE DEFINER=`root`@`%` '+cstAl[1]+' `'+cstAl[0] +
-                       '`('+(str(cstAl[2], encoding='utf-8')) +
-                       ')'+(' RETURNS ' + str(cstAl[3], encoding='utf-8') if cstAl[3] else '')+'\n').encode('UTF-8'))
-    file_object.write((str(cstAl[4], encoding='utf-8') + "\n").encode('UTF-8'))
+                       '`('+(str(cstAl[2], encoding='utf-8').replace('^M', '')) +
+                       ')'+(' RETURNS ' + str(cstAl[3], encoding='utf-8').replace('^M', '') if cstAl[3] else '') +
+                       '\n').encode('UTF-8'))
+    file_object.write((str(cstAl[4], encoding='utf-8').replace('^M', '') + "\n").encode('UTF-8'))
     file_object.write((';;\nDELIMITER ;\n\n').encode('UTF-8'))
 
 file_object.close()
