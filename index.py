@@ -5,7 +5,7 @@ import time
 with open("./configs.json", "r") as configs:
     confs = json.load(configs)
     workDir = confs["workDir"]
-    conf = confs["db_rds_jyh"]
+    conf = confs["db_rds_strest"]
 
 conn = pymysql.connect(
     host=conf["db_host"],
@@ -187,7 +187,6 @@ cur.execute('select TABLE_NAME, VIEW_DEFINITION from ' +
             conf["db_database"])
 rs = cur.fetchall()
 cur.close()
-conn.close()
 
 ps = {}
 for al in rs:
@@ -202,4 +201,18 @@ for al in rely:
         'CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` ' +
         ' SQL SECURITY DEFINER VIEW ' + al + ' AS ' + ps[al] + ';\n\n').encode('UTF-8'))
 
+cur = conn.cursor()
+cur.execute('select name,type,param_list,returns,body from mysql.proc where db = %s ', conf["db_database"])
+fRs = cur.fetchall()
+cur.close()
+for cstAl in fRs:
+    file_object.write(('DROP PROCEDURE IF EXISTS `'+cstAl[0]+'`;\n').encode('UTF-8'))
+    file_object.write(('DELIMITER ;;\n').encode('UTF-8'))
+    file_object.write(('CREATE DEFINER=`root`@`%` '+cstAl[1]+' `'+cstAl[0] +
+                       '`('+(str(cstAl[2], encoding='utf-8')) +
+                       ')'+(' RETURNS ' + str(cstAl[3], encoding='utf-8') if cstAl[3] else '')+'\n').encode('UTF-8'))
+    file_object.write((str(cstAl[4], encoding='utf-8') + "\n").encode('UTF-8'))
+    file_object.write((';;\nDELIMITER ;\n\n').encode('UTF-8'))
+
 file_object.close()
+conn.close()
