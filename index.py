@@ -5,7 +5,7 @@ import time
 with open("./configs.json", "r") as configs:
     confs = json.load(configs)
     workDir = confs["workDir"]
-    conf = confs["db_rds_strest"]
+    conf = confs["db_rds_jyh"]
 
 conn = pymysql.connect(
     host=conf["db_host"],
@@ -165,9 +165,6 @@ for tbAl in tbRs:
         ' ' + tableCreateOptions + ' COMMENT=\'' + tableComment + '\';\n\n').encode('UTF-8')
     )
     cur = conn.cursor()
-    # cur.execute('SET NAMES utf8mb4')
-    # cur.execute("SET CHARACTER SET utf8mb4")
-    # cur.execute("SET character_set_connection=utf8mb4")
     cur.execute('select ' + ",".join(allFields) + ' from ' + tableName)
     recordsRs = cur.fetchall()
     cur.close()
