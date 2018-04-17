@@ -7,6 +7,7 @@ with open("./configs.json", "r") as configs:
     confs = json.load(configs)
     workDir = confs["workDir"]
 
+print('Begin to export: ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 for confKey in confs:
     if not confKey.startswith('db_'):
         continue
@@ -21,3 +22,4 @@ for confKey in confs:
               '[error] export ' + conf["db_database"] + ' failure. message:' +
               str(error) if 'error' in dir() else '[info] export ' +
               conf["db_database"] + ' success.')
+print('End to export: ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
