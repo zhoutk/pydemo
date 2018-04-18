@@ -60,13 +60,16 @@ def exportMysql(conf, workDir):
 
     FKEYS = {}
     for cstAl in cstRs:
-        FKEYS[cstAl[1] + '.' + cstAl[2]] = {
-            "constraintName": cstAl[0],
-            "colName1": cstAl[2],
-            "schema": cstAl[3],
-            "tableName": cstAl[4],
-            "colName2": cstAl[5]
-        }
+        if cstAl[1] + '.' + cstAl[0] not in FKEYS:
+            FKEYS[cstAl[1] + '.' + cstAl[0]] = {
+                "constraintName": cstAl[0],
+                "sourceCols": [],
+                "schema": cstAl[3],
+                "tableName": cstAl[4],
+                "targetCols": []
+            }
+        FKEYS[cstAl[1] + '.' + cstAl[0]]["sourceCols"].append(cstAl[2])
+        FKEYS[cstAl[1] + '.' + cstAl[0]]["targetCols"].append(cstAl[5])
 
     cur = conn.cursor()
     cur.execute('select TABLE_NAME,ENGINE,ROW_FORMAT,AUTO_INCREMENT,TABLE_COLLATION,CREATE_OPTIONS,TABLE_COMMENT' +
@@ -128,8 +131,7 @@ def exportMysql(conf, workDir):
                                   (' ' + colAl[5] if colAl[5] else '') +
                                   (' COMMENT \'' + colAl[7] + '\'' if colAl[7] else '') +
                                   ',\n').encode('UTF-8'))
-                if tableName+'.'+colAl[0] in FKEYS:
-                    fKey.append(FKEYS[tableName+'.'+colAl[0]])
+            
             if colAl[9] and colAl[9] == 'PRIMARY':
                 if colAl[9] not in priKey:
                     priKey[colAl[9]] = []
@@ -149,9 +151,14 @@ def exportMysql(conf, workDir):
             file_object.write(('  UNIQUE KEY `'+ckey+'` (`'+"`,`".join(colKey[ckey])+'`),\n').encode('UTF-8'))
         for mkey in mulKey.keys():
             file_object.write(('  KEY `'+mkey+'` (`'+"`,`".join(mulKey[mkey])+'`),\n').encode('UTF-8'))
-        for fkey in fKey:
-            file_object.write(('  CONSTRAINT `'+fkey["constraintName"]+'` FOREIGN KEY (`'+fkey["colName1"] +
-                              '`) REFERENCES `'+fkey["tableName"]+'` (`'+fkey["colName2"]+'`),\n').encode('UTF-8'))
+        consKeys = FKEYS.keys()
+        for al in consKeys:
+            if al.startswith(tableName):
+                fkey = FKEYS[al]
+                file_object.write(('  CONSTRAINT `'+fkey["constraintName"]+'` FOREIGN KEY (`'+
+                                    "`,`".join(fkey["sourceCols"]) + '`) REFERENCES `'+fkey["tableName"]+
+                                    '` (`'+"`,`".join(fkey["targetCols"])+'`),\n').encode('UTF-8'))
+            
         file_object.seek(-len(',\n'), 1)
         file_object.write((
             '\n) ENGINE=' + tableEngine +
